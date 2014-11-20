@@ -1,0 +1,9 @@
+*.txt
+*.log
+*.o
+*.exe
+evc
+evc2mat
+lim
+testgen_evc
+max_dist

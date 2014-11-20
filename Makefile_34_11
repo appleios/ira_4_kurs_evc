@@ -1,0 +1,47 @@
+
+# Common macro
+
+CC              = gcc
+LINK            = gcc
+
+DEBUG           =
+OPTIMIZE        = -O2
+WARNINGS        =
+INCLUDE_DIR     =
+CFLAGS          = -c $(DEBUG) $(OPTIMIZE) $(WARNINGS) $(INCLUDE_DIR)
+
+LIB_DIR         =
+LIB             =
+LDFLAGS         = $(DEBUG)
+
+
+# Compilation suffix rule
+
+.SUFFIXES: .c .o
+
+.c.obj:
+	$(CC) $(CFLAGS) $<
+
+
+# Output name and objective list
+
+NAME            = evc.exe
+OBJS            = main_34_11.o sim_34_11.o evc_34_11.o
+
+# Dependency lines
+
+all: $(NAME)
+
+$(NAME): $(OBJS)
+	$(LINK) $(LDFLAGS) $(LIB_DIR) $(LIB) -o $(NAME) $(OBJS)
+
+main_34_11.o: main_34_11.c task_34_11.h
+
+sim_34_11.o: sim_34_11.c task_34_11.h
+
+evc_34_11.o: evc_34_11.c task_34_11.h
+
+clean:
+	rm -f $(OBJS) *.?~
+	rm -f *.tds
+
