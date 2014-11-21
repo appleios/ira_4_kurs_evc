@@ -1,0 +1,2 @@
+evc.exe:
+	gcc main_34_11.c evc_34_11.c sim_34_11.c -lm -o evc.exe
