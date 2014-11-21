@@ -63,7 +63,7 @@ int evc_34_11(int n, int max_iterations, double epsilon, double* A, double* E, d
 				else Q[i*n+j]=0;
 			}
 		} 
-		/*printf("old A matrix:\n");
+	/*	printf("old A matrix:\n");
 		for(i = 0; i < n; i++){
 			for(j = 0; j < n; j++){
 				printf("%1.9lf ", A[i*n+j]);
@@ -99,8 +99,11 @@ int evc_34_11(int n, int max_iterations, double epsilon, double* A, double* E, d
 				}
 			}
 			evc_multiply_matrix(Q,U, tmpA, n);											// build Q=Q*U
+			p = 0;
 			for(i = 0; i<n; i++){
 				for(j = 0; j<n; j++){
+					if(fabs(Q[i*n+j]-tmpA[i*n+j])>precision)
+						p = 1;
 					Q[i*n+j]=tmpA[i*n+j];
 				}
 			}
@@ -127,39 +130,42 @@ int evc_34_11(int n, int max_iterations, double epsilon, double* A, double* E, d
 			}
 			printf("\n");
 		}*/
-		p = 0;
-		for(i = 0; i<n ;i++){				// Compare old eigenvalues with new
-			p1 = 0;
-			if(blocks[i]!=0){
-				for(j = 0; j<n; j++){
-					if(blocks[j]!=0){
-						if(fabs(oldE[i]-A[j*n+j])<=precision) {p1 = 1; break;}  //new=old
-					}
+		p1 = 0;
+		for(i = 0; i<n ;i++){				// if Q=I eigenvalues are found
+			for(j = 0; j<n; j++){
+				if(i == j){
+					if(fabs(fabs(Q[i*n+j])-1)>precision) p1 = 1;
 				}
-				if (p1 == 0) {  //eigenvalue changed
-				p = 1; break;
+				else{
+					if(fabs(Q[i*n+j])>precision) p1 = 1;
 				}
 			}
 		}
-		if(p == 0){
-			for(i = 0; i<n; i++){
-				if(blocks[i]!=0)
+		if(p1 == 0){
+			for(i = n-1; i>=0; i--){
 					E[i] = A[i*n+i];
 			}
 			evc_sort(E,n, precision); return 0;
 		}
-		p = 0;
-		for(i = 0; i<n ;i++){
-			if(fabs(U[i*n+i])!= 1){ p = 1; break;}
-		}
-		if (p == 0){
-			for(i = n-1;i>0;i--){
-				if(blocks[i]!=0){
-					A[i*n+(i-1)] = 0;
-					break;
+		for(i = 0 ;i<n; i++){
+			if(blocks[i]!=0){
+				if(fabs(fabs(Q[i*n+i])-1)<precision){
+					p = 0;
+					for(j = 0; j<n; j++){
+						if(i!=j){
+							if(fabs(Q[i*n+j])>precision) p = 1;
+							if(fabs(Q[j*n+i])>precision) p = 1;
+						}
+					}
+					if(p == 0){
+						E[i] = A[i*n+i];
+						blocks[i] = 0;
+					}
 				}
 			}
 		}
+
+
 		evc_exhaustion(A,n, normA, epsilon, blocks, E);						//Исчерпывание матрицы A, разбиение на блоки
 		//for(i = 0; i<n; i++) printf("%1.lf ", blocks[i]);
 		n1 = evc_find_num_s_k(blocks, n);													//Вычисление сдвига s_k, номер еще не вычисленного собств знач
@@ -196,26 +202,28 @@ void evc_exhaustion(double *A, int n, double normA, double epsilon, double *bloc
 	- epsilon -- точность;
 	- blocks -- текущая разметка матрицы;
 	- E -- текущие собственные значения.*/
-	int i, s, p = 0;
+	int i, j,s, p = 0;
 	double d;
-	for(i = 0; i<n-1; i++){																					//Исчерпывание
+	for(i = 1; i<n; i++){
+		if(blocks[i] == 0){
+			if(i!=0)
+				A[(i-1)*n+i] = 0;
+			A[i*n+i-1] = 0;
+		}
+	}
+	for(i = 0; i<n-1; i++){					//Исчерпывание
 		if((fabs(A[(i+1)*n+i])<epsilon*normA)&&(blocks[i]!=0)){
-			A[(i+1)*n+i]=0;
+			A[(i+1)*n+i] = 0;
+			A[i*n+i+1] = 0;
 		}
 	}
-	for(i = n-1; i>0; i--){																					//проверка условия сдвига
-		if((blocks[i]!=0)&&(fabs(A[i*n+(i-1)]) < epsilon*normA)){
-			E[i] = A[i*n+i];
-			blocks[i] = 0;
-		}
-		else if(blocks[i]!=0) break;
-	}
+	
 	//for(i = 0; i<n; i++) printf("%1.lf ", blocks[i]);
 	s = 0;																													//Проверка наличия блоков 2*2
-	for(i = 0; i<n-1; i++){
+	for(i = 0; i<n; i++){
 		if(blocks[i]!=0){
 			s++;
-			if (A[(i+1)*n+i] == 0) {
+			if ((A[(i+1)*n+i] == 0)||(i==n-1)) {
 				if (s == 1){
 					E[i] = A[i*n+i];
 					blocks[i] = 0;
@@ -232,6 +240,29 @@ void evc_exhaustion(double *A, int n, double normA, double epsilon, double *bloc
 			}
 		}
 	}
+	if(( s == 1)||(s==2)){
+		for(i = n-1;i>=0; i--) if(blocks[i]!=0) break;
+		if (s == 1){
+					E[i] = A[i*n+i];
+					blocks[i] = 0;
+				}
+				if (s == 2){ 
+					d = A[(i-1)*n+(i-1)]*A[(i-1)*n+(i-1)]+A[i*n+i]*A[i*n+i]-2*A[(i-1)*n+(i-1)]*A[i*n+i]
+							+4*A[(i-1)*n+i]*A[i*n+(i-1)];
+					E[i-1] = (double)(A[(i-1)*n+(i-1)]+A[i*n+i]+sqrt(d))/2;
+					E[i] = (double)(A[(i-1)*n+(i-1)]+A[i*n+i]-sqrt(d))/2;
+					blocks[i-1] = 0;
+					blocks[i] = 0;
+				}
+	}
+	for(i = n-1; i>0; i--){																					//проверка условия сдвига
+		if((blocks[i]!=0)&&(fabs(A[i*n+(i-1)]) < epsilon*normA)){
+			E[i] = A[i*n+i];
+			blocks[i] = 0;
+		}
+		else if(blocks[i]!=0) break;
+	}
+	
 }
 
 int evc_find_num_s_k(double *blocks, int n){

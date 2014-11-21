@@ -152,8 +152,9 @@ int main(int argc, char *argv[]){
 
 	if ((ans == 0)||(ans == 1)){
 		fprintf(out,"%d\n", n);
-		for (i=0; i<n; i++)
+		for (i=0; i<n; i++){
 			fprintf(out, "%1.9lf\n", E[i]);
+		}
 		if(ans == 0){
 			if(debug_mode)
 				printf("\nWork has been completed successfully");
